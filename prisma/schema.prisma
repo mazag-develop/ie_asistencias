@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoPersona {
+  ESTUDIANTE
+  PROFESOR
+}
+
+enum EstadoAsistencia {
+  PUNTUAL
+  TARDANZA
+  FALTA
+}
+
+model Persona {
+  id        Int      @id @default(autoincrement())
+  codigo    String   @unique @db.VarChar(50)
+  documento String?  @unique @db.VarChar(20)
+  nombres   String   @db.VarChar(100)
+  apellidos String   @db.VarChar(100)
+  tipo      TipoPersona
+  activo    Boolean  @default(true)
+
+  asistencias Asistencia[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tipo, activo])
+  @@map("personas")
+}
+
+model Asistencia {
+  id          Int             @id @default(autoincrement())
+  personaId   Int
+  fechaEscolar String          @db.VarChar(10)
+  fechaHora   DateTime        @db.Timestamptz(3)
+  estado      EstadoAsistencia
+  codigoLeido String?         @db.VarChar(50)
+
+  persona Persona @relation(fields: [personaId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([personaId, fechaEscolar])
+  @@index([fechaEscolar, estado])
+  @@index([personaId, fechaEscolar])
+  @@map("asistencias")
+}
