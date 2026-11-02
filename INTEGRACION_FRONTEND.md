@@ -393,6 +393,38 @@ es `null` mientras no haya autenticación de usuarios.
 | `GET`  | `/api/reportes/asistencias`       | Reporte JSON                        |
 | `GET`  | `/api/reportes/asistencias/excel` | Descarga del reporte Excel          |
 
+### Reporte de asistencias: hora y código de estado
+
+Ambas rutas de reporte incluyen la hora de registro y el código abreviado del
+estado:
+
+- `P`: presente; asistió puntual (`PUNTUAL`).
+- `T`: tardanza (`TARDANZA`).
+- `F`: falta (`FALTA`).
+
+La respuesta JSON conserva `estado` con su valor completo para compatibilidad,
+y agrega `hora`, `estadoCodigo` y `estadoDescripcion`:
+
+```json
+[
+  {
+    "fecha": "2026-10-30",
+    "hora": "07:30:45",
+    "persona": "Ana Pérez",
+    "tipo": "ESTUDIANTE",
+    "estado": "PUNTUAL",
+    "estadoCodigo": "P",
+    "estadoDescripcion": "Presente - asistió puntual"
+  }
+]
+```
+
+En el Excel se muestran las columnas `Fecha`, `Hora`, `Persona`, `Tipo`,
+`Estado`, `Código` y `Descripción`. Para una asistencia con estado `FALTA`, la
+hora se devuelve vacía, porque no hay una hora de asistencia registrada.
+Actualmente el reporte contiene registros almacenados; no genera
+automáticamente filas de falta para personas que no registraron asistencia.
+
 ## Errores y experiencia de usuario
 
 Las respuestas de error de NestJS incluyen `statusCode`, `message` y `error`.
