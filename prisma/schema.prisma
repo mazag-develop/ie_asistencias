@@ -19,15 +19,20 @@ enum EstadoAsistencia {
 }
 
 model Persona {
-  id        Int      @id @default(autoincrement())
-  codigo    String   @unique @db.VarChar(50)
-  documento String?  @unique @db.VarChar(20)
-  nombres   String   @db.VarChar(100)
-  apellidos String   @db.VarChar(100)
+  id        Int         @id @default(autoincrement())
+  codigo    String      @unique @db.VarChar(50)
+  documento String?     @unique @db.VarChar(20)
+  nombres   String      @db.VarChar(100)
+  apellidos String      @db.VarChar(100)
   tipo      TipoPersona
-  activo    Boolean  @default(true)
+  activo    Boolean     @default(true)
+  grado     String?     @db.VarChar(50)
+  seccion   String?     @db.VarChar(20)
+  cargo     String?     @db.VarChar(30)
 
-  asistencias Asistencia[]
+  asistencias          Asistencia[]
+  auditoriaPersonas    AuditoriaPersona[]
+  auditoriaAsistencias AuditoriaAsistencia[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -37,14 +42,15 @@ model Persona {
 }
 
 model Asistencia {
-  id          Int             @id @default(autoincrement())
-  personaId   Int
-  fechaEscolar String          @db.VarChar(10)
-  fechaHora   DateTime        @db.Timestamptz(3)
-  estado      EstadoAsistencia
-  codigoLeido String?         @db.VarChar(50)
+  id           Int              @id @default(autoincrement())
+  personaId    Int
+  fechaEscolar String           @db.VarChar(10)
+  fechaHora    DateTime         @db.Timestamptz(3)
+  estado       EstadoAsistencia
+  codigoLeido  String?          @db.VarChar(50)
 
-  persona Persona @relation(fields: [personaId], references: [id])
+  persona              Persona               @relation(fields: [personaId], references: [id])
+  auditoriaAsistencias AuditoriaAsistencia[]
 
   createdAt DateTime @default(now())
 
@@ -52,4 +58,39 @@ model Asistencia {
   @@index([fechaEscolar, estado])
   @@index([personaId, fechaEscolar])
   @@map("asistencias")
+}
+
+model AuditoriaPersona {
+  id              Int      @id @default(autoincrement())
+  personaId       Int?
+  accion          String   @db.VarChar(30)
+  datosAnteriores Json?    @db.JsonB
+  datosNuevos     Json?    @db.JsonB
+  actorId         Int?
+  fechaHora       DateTime @default(now()) @db.Timestamptz(3)
+
+  persona Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([personaId, fechaHora])
+  @@index([fechaHora])
+  @@map("auditoria_personas")
+}
+
+model AuditoriaAsistencia {
+  id              Int      @id @default(autoincrement())
+  asistenciaId    Int?
+  personaId       Int?
+  accion          String   @db.VarChar(30)
+  datosAnteriores Json?    @db.JsonB
+  datosNuevos     Json?    @db.JsonB
+  actorId         Int?
+  fechaHora       DateTime @default(now()) @db.Timestamptz(3)
+
+  asistencia Asistencia? @relation(fields: [asistenciaId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  persona    Persona?    @relation(fields: [personaId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([asistenciaId, fechaHora])
+  @@index([personaId, fechaHora])
+  @@index([fechaHora])
+  @@map("auditoria_asistencias")
 }

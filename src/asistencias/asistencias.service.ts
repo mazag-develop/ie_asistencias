@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { EstadoAsistencia, TipoPersona } from '@prisma/client';
+import { EstadoAsistencia, Prisma, TipoPersona } from '@prisma/client';
 import { DateTime } from 'luxon';
 import { construirFiltroAsistencia } from '../common/asistencia-where';
 import { AsistenciasQueryDto } from '../common/dto/asistencias-query.dto';
@@ -28,6 +28,10 @@ export interface ResumenAsistenciaDiaria {
   tardanzas: number;
   faltas: number;
   pendientes: number;
+}
+
+function snapshot(value: object): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
 @Injectable()
@@ -170,14 +174,25 @@ export class AsistenciasService {
 
     const estado = this.getEstadoByHora(persona.tipo, ahora.toJSDate());
 
-    const asistencia = await this.prisma.asistencia.create({
-      data: {
-        personaId: persona.id,
-        fechaEscolar,
-        fechaHora: ahora.toJSDate(),
-        estado,
-        codigoLeido: codigo.trim(),
-      },
+    const asistencia = await this.prisma.$transaction(async (tx) => {
+      const registro = await tx.asistencia.create({
+        data: {
+          personaId: persona.id,
+          fechaEscolar,
+          fechaHora: ahora.toJSDate(),
+          estado,
+          codigoLeido: codigo.trim(),
+        },
+      });
+      await tx.auditoriaAsistencia.create({
+        data: {
+          asistenciaId: registro.id,
+          personaId: persona.id,
+          accion: 'CREAR',
+          datosNuevos: snapshot(registro),
+        },
+      });
+      return registro;
     });
 
     return {
